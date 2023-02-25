@@ -1,0 +1,57 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: provisioner
+spec:
+  consolidation:
+    enabled: false
+  ttlSecondsAfterEmpty: 30    
+  #ttlSecondsUntilExpired: 120 #EXpires the node after certain time period
+  #ttlSecondsAfterEmpty: 30 # Evicts the node if empty after this interval
+  labels:
+    intent: ${LABEL}
+    role: ${LABEL}
+  taints:
+    - key: ${KEY}
+      value: ${VALUE}
+      effect: ${EFFECT}
+  requirements:
+    - key: "topology.kubernetes.io/zone" 
+      operator: In
+      values: ["eu-west-1b","eu-west-1a"]
+    - key: karpenter.sh/capacity-type
+      operator: In
+      values: ["on-demand"]
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64"]
+    - key: node.kubernetes.io/instance-type
+      operator: In
+      values: ["c5a.4xlarge","c5.4xlarge","m5a.4xlarge","m5.4xlarge"]
+  limits:
+    resources:
+      cpu: ${CPU}
+      memory: ${MEMORY}
+  providerRef:
+    name: ${LABEL}-provisioner-ref
+
+---
+apiVersion: karpenter.k8s.aws/v1alpha1
+kind: AWSNodeTemplate
+metadata:
+  name: ${LABEL}-provisioner-ref
+spec:
+  amiFamily: AL2
+  instanceProfile: ${INSTANCE_PROFILE}
+  tags:
+    Name: karpenter.sh/${LABEL}
+    aws-node-termination-handler/managed: "true"
+    karpenter.sh/nodegroup: "${LABEL}"
+
+  subnetSelector:
+    karpeter.sh/zone: "*"
+  securityGroupSelector:
+    kubernetes.io/cluster/prod-gce-nextgen-eks: "*"
+    Name: ${SG}
+  amiSelector:
+    aws-ids: ${ami_id}
