@@ -9,12 +9,12 @@ spec:
   #ttlSecondsUntilExpired: 120 #EXpires the node after certain time period
   #ttlSecondsAfterEmpty: 30 # Evicts the node if empty after this interval
   labels:
-    intent: ${LABEL}
-    role: ${LABEL}
+    intent: apps
+    role: worker-nodes
   taints:
-    - key: ${KEY}
-      value: ${VALUE}
-      effect: ${EFFECT}
+    - key: node
+      value: worker-nodes
+      effect: NoSchedule
   requirements:
     - key: "topology.kubernetes.io/zone" 
       operator: In
@@ -27,31 +27,31 @@ spec:
       values: ["amd64"]
     - key: node.kubernetes.io/instance-type
       operator: In
-      values: ["c5a.4xlarge","c5.4xlarge","m5a.4xlarge","m5.4xlarge"]
+      values: ["c5a.4xlarge","c5.4xlarge"]
   limits:
     resources:
       cpu: ${CPU}
       memory: ${MEMORY}
   providerRef:
-    name: ${LABEL}-provisioner-ref
+    name: node-provisioner-ref
 
 ---
 apiVersion: karpenter.k8s.aws/v1alpha1
 kind: AWSNodeTemplate
 metadata:
-  name: ${LABEL}-provisioner-ref
+  name: node-provisioner-ref
 spec:
   amiFamily: AL2
   instanceProfile: ${INSTANCE_PROFILE}
   tags:
-    Name: karpenter.sh/${LABEL}
+    Name: karpenter.sh/worker-node
     aws-node-termination-handler/managed: "true"
-    karpenter.sh/nodegroup: "${LABEL}"
+    karpenter.sh/nodegroup: "worker-node"
 
   subnetSelector:
-    ${KEY}: "${VALUE}"
+    karpenter: "true"
   securityGroupSelector:
-    ${KEY}: "${VALUE}"
+    karpenter: "true"
     Name: ${SG}
   amiSelector:
     aws-ids: ${ami_id}
